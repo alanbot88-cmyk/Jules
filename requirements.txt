@@ -9,3 +9,5 @@ pytest
 pytest-asyncio
 numpy
 python-dotenv
+fastapi
+uvicorn[standard]
