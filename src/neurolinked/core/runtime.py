@@ -6,6 +6,7 @@ from .bus import CognitiveBus
 from .router import ModelRouter, ModelProvider
 from .ai import AIService
 from .telemetry import TelemetryManager
+from .skills import SkillRegistry, Skill
 from ..agents.base import BaseAgent
 from ..agents.ruflo import RufloAgent
 from ..agents.octgent import OctgentAgent
@@ -18,6 +19,8 @@ from ..agents.reward import RewardEngine
 class Runtime:
     def __init__(self):
         self.bus = CognitiveBus()
+        self.skill_registry = SkillRegistry()
+        self._init_skills()
         self.router = ModelRouter({
             ModelProvider.GEMINI: [os.getenv("GEMINI_API_KEY", "mock-key")],
             ModelProvider.GROQ: [os.getenv("GROQ_API_KEY", "mock-key")],
@@ -31,7 +34,28 @@ class Runtime:
         # Inject dependencies if needed
         if hasattr(agent, 'ai_service'):
             agent.ai_service = self.ai_service
+        if hasattr(agent, 'skill_registry'):
+            agent.skill_registry = self.skill_registry
         self.agents.append(agent)
+
+    def _init_skills(self):
+        async def write_file(filename: str, content: str):
+            with open(filename, 'w') as f:
+                f.write(content)
+            return f"File {filename} written"
+
+        self.skill_registry.register_skill(
+            Skill(name="write_file", description="Write content to a file", parameters={"filename": "str", "content": "str"}),
+            write_file
+        )
+
+        async def web_search(query: str):
+            return f"Found results for: {query}"
+
+        self.skill_registry.register_skill(
+            Skill(name="web_search", description="Search the web", parameters={"query": "str"}),
+            web_search
+        )
 
     async def start(self):
         logger.info("Initializing Neurolinked Runtime v3.0...")

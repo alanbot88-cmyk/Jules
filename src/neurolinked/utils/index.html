@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Neurolinked Runtime Dashboard</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #0d1117; color: #c9d1d9; margin: 0; display: flex; height: 100vh; }
+        #sidebar { width: 300px; background: #161b22; border-right: 1px solid #30363d; padding: 20px; display: flex; flex-direction: column; }
+        #main { flex: 1; display: flex; flex-direction: column; padding: 20px; overflow: hidden; }
+        #log { background: #010409; padding: 15px; border-radius: 6px; flex: 1; overflow-y: scroll; border: 1px solid #30363d; font-family: 'Consolas', 'Monaco', monospace; }
+        .event { margin-bottom: 8px; border-bottom: 1px solid #21262d; padding-bottom: 5px; animation: fadeIn 0.3s; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
+        .type { font-weight: bold; color: #58a6ff; }
+        .agent { color: #d2a8ff; font-style: italic; }
+        .payload { color: #8b949e; font-size: 0.85em; margin-top: 4px; white-space: pre-wrap; }
+        h1, h2 { color: #f0f6fc; margin-top: 0; }
+        #status { font-size: 0.9em; margin-bottom: 20px; padding: 5px 10px; border-radius: 12px; display: inline-block; }
+        .online { background: #23863622; color: #3fb950; border: 1px solid #238636; }
+        .offline { background: #da363322; color: #f85149; border: 1px solid #da3633; }
+        .skill-tag { background: #388bfd11; color: #58a6ff; border: 1px solid #388bfd; padding: 2px 6px; border-radius: 4px; font-size: 0.8em; margin-right: 5px; margin-bottom: 5px; display: inline-block; }
+    </style>
+</head>
+<body>
+    <div id="sidebar">
+        <h2>Neurolinked v3.0</h2>
+        <div id="status" class="offline">Connecting...</div>
+        <h3>Active Skills</h3>
+        <div id="skills">
+            <span class="skill-tag">write_file</span>
+            <span class="skill-tag">web_search</span>
+            <span class="skill-tag">neural_sync</span>
+        </div>
+        <h3>Agents</h3>
+        <div id="agents" style="font-size: 0.9em; color: #8b949e;">
+            Ruflo (Planner)<br>
+            Octgent (Executor)<br>
+            ECC (Validator)<br>
+            Supervisor<br>
+            Reward/STDP
+        </div>
+    </div>
+    <div id="main">
+        <h1>Live Cognitive Telemetry</h1>
+        <div id="log"></div>
+    </div>
+
+    <script>
+        const logDiv = document.getElementById('log');
+        const statusDiv = document.getElementById('status');
+
+        const ws = new WebSocket('ws://' + window.location.hostname + ':8765');
+
+        ws.onopen = () => {
+            statusDiv.innerText = '● RUNTIME ONLINE';
+            statusDiv.className = 'online';
+        };
+
+        ws.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            const entry = document.createElement('div');
+            entry.className = 'event';
+
+            let payloadStr = JSON.stringify(data.payload, null, 2);
+
+            entry.innerHTML = `
+                <span style="color: #8b949e;">[${new Date(data.timestamp).toLocaleTimeString()}]</span>
+                <span class="type">${data.event_type.toUpperCase()}</span>
+                by <span class="agent">${data.source_agent}</span>
+                <div class="payload">${payloadStr}</div>
+            `;
+            logDiv.prepend(entry);
+
+            // Limit log size
+            if (logDiv.children.length > 100) {
+                logDiv.removeChild(logDiv.lastChild);
+            }
+        };
+
+        ws.onclose = () => {
+            statusDiv.innerText = '● RUNTIME OFFLINE';
+            statusDiv.className = 'offline';
+        };
+    </script>
+</body>
+</html>
