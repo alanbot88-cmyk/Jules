@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Neurolinked Runtime Dashboard</title>
+    <style>
+        body { font-family: 'Courier New', Courier, monospace; background-color: #0d1117; color: #58a6ff; margin: 20px; }
+        #log { background: #161b22; padding: 15px; border-radius: 5px; height: 500px; overflow-y: scroll; border: 1px solid #30363d; }
+        .event { margin-bottom: 10px; border-bottom: 1px solid #21262d; padding-bottom: 5px; }
+        .type { font-weight: bold; color: #79c0ff; }
+        .agent { color: #d2a8ff; }
+        .payload { color: #8b949e; font-size: 0.9em; }
+        h1 { color: #f0f6fc; }
+    </style>
+</head>
+<body>
+    <h1>Neurolinked v3.0 Live Telemetry</h1>
+    <div id="status">Connecting to runtime...</div>
+    <div id="log"></div>
+
+    <script>
+        const logDiv = document.getElementById('log');
+        const statusDiv = document.getElementById('status');
+
+        // Connect to the UIRenderAgent WebSocket
+        // In this environment, we use port 8765 for the WebSocket
+        const ws = new WebSocket('ws://' + window.location.hostname + ':8765');
+
+        ws.onopen = () => {
+            statusDiv.innerText = 'Connected to Runtime';
+            statusDiv.style.color = '#7ee787';
+        };
+
+        ws.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            const entry = document.createElement('div');
+            entry.className = 'event';
+            entry.innerHTML = `
+                [${new Date(data.timestamp).toLocaleTimeString()}]
+                <span class="type">${data.event_type}</span>
+                from <span class="agent">${data.source_agent}</span>
+                <div class="payload">${JSON.stringify(data.payload)}</div>
+            `;
+            logDiv.prepend(entry);
+        };
+
+        ws.onclose = () => {
+            statusDiv.innerText = 'Disconnected';
+            statusDiv.style.color = '#f85149';
+        };
+    </script>
+</body>
+</html>

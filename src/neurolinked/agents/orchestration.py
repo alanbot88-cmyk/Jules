@@ -45,7 +45,10 @@ class SupervisorAgent(BaseAgent):
     async def handle_validation(self, event: BaseEvent):
         is_valid = event.payload.get("is_valid")
         logger.info(f"Supervisor received validation: {is_valid}")
-        # Logic to proceed to next step or retry would go here
+
+        # In a real system, we'd look up the active task state
+        # For demo, we'll assume sequential progress from the event payload
+        # if the previous step was valid.
 
 class WatchdogAgent(BaseAgent):
     def __init__(self, agent_id: str, bus: CognitiveBus):
