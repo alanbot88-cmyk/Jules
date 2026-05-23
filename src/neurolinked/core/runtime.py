@@ -1,7 +1,11 @@
 import asyncio
+import os
 from typing import List
 from loguru import logger
 from .bus import CognitiveBus
+from .router import ModelRouter, ModelProvider
+from .ai import AIService
+from .telemetry import TelemetryManager
 from ..agents.base import BaseAgent
 from ..agents.ruflo import RufloAgent
 from ..agents.octgent import OctgentAgent
@@ -14,14 +18,25 @@ from ..agents.reward import RewardEngine
 class Runtime:
     def __init__(self):
         self.bus = CognitiveBus()
+        self.router = ModelRouter({
+            ModelProvider.GEMINI: [os.getenv("GEMINI_API_KEY", "mock-key")],
+            ModelProvider.GROQ: [os.getenv("GROQ_API_KEY", "mock-key")],
+        })
+        self.ai_service = AIService(self.router)
+        self.telemetry = TelemetryManager(self.bus)
         self.agents: List[BaseAgent] = []
         self._shutdown_event = asyncio.Event()
 
     def register_agent(self, agent: BaseAgent):
+        # Inject dependencies if needed
+        if hasattr(agent, 'ai_service'):
+            agent.ai_service = self.ai_service
         self.agents.append(agent)
 
     async def start(self):
         logger.info("Initializing Neurolinked Runtime v3.0...")
+
+        self.telemetry.start()
 
         # Default agent set
         self.register_agent(RufloAgent("ruflo-01", self.bus))

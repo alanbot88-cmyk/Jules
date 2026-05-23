@@ -7,6 +7,7 @@ from loguru import logger
 class RufloAgent(BaseAgent):
     def __init__(self, agent_id: str, bus: CognitiveBus):
         super().__init__(agent_id, bus, region=CognitiveRegion.PREFRONTAL)
+        self.ai_service = None
 
     async def setup(self):
         self.bus.subscribe("task_request", self.handle_task_request)
@@ -18,9 +19,13 @@ class RufloAgent(BaseAgent):
         task_description = event.payload.get("description")
         logger.info(f"Ruflo received task: {task_description}")
 
-        # In a real implementation, this would call Gemini 3.5 Flash
-        # For now, we simulate the decomposition
-        plan = self._decompose_task(task_description)
+        if self.ai_service:
+            try:
+                plan = await self.ai_service.generate_decomposition(task_description)
+            except Exception:
+                plan = self._decompose_task(task_description)
+        else:
+            plan = self._decompose_task(task_description)
 
         await self.publish(
             event_type="task_plan_generated",

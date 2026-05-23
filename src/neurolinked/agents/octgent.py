@@ -6,6 +6,7 @@ from loguru import logger
 class OctgentAgent(BaseAgent):
     def __init__(self, agent_id: str, bus: CognitiveBus):
         super().__init__(agent_id, bus, region=CognitiveRegion.EXECUTION)
+        self.ai_service = None
 
     async def setup(self):
         self.bus.subscribe("execution_request", self.handle_execution_request)
@@ -18,8 +19,10 @@ class OctgentAgent(BaseAgent):
         description = event.payload.get("description")
         logger.info(f"Octgent executing action: {action} - {description}")
 
-        # Simulate execution using Groq Llama 3.3
-        result = f"Successfully performed {action}"
+        if self.ai_service:
+            result = await self.ai_service.execute_action(action, description)
+        else:
+            result = f"Successfully performed {action}"
 
         await self.publish(
             event_type="execution_completed",
